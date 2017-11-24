@@ -1,0 +1,21 @@
+# depslib dependency file v1.0
+1509052006 source:c:\users\jpoco\documents\practica-1\practica01.cpp
+	<stdlib.h>
+	<stdio.h>
+	"GLUT/glut.h"
+	"GL/glut.h"
+
+1426367728 c:\users\jpoco\documents\practica-1\gl\glut.h
+	"freeglut_std.h"
+
+1426367728 c:\users\jpoco\documents\practica-1\gl\freeglut_std.h
+	<windows.h>
+	<EGL/egl.h>
+	<GLES/gl.h>
+	<GLES2/gl2.h>
+	<OpenGL/gl.h>
+	<OpenGL/glu.h>
+	<GL/gl.h>
+	<GL/glu.h>
+	<stdlib.h>
+
