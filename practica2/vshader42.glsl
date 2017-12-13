@@ -1,33 +1,25 @@
-/***************************
- * File: vshader42.glsl:
- *   A simple vertex shader.
- *
- * - Vertex attributes (positions & colors) for all vertices are sent
- *   to the GPU via a vertex buffer object created in the OpenGL program.
- *
- * - This vertex shader uses the Model-View and Projection matrices passed
- *   on from the OpenGL program as uniform variables of type mat4.
- ***************************/
 
-#version 150  // YJC: Comment/un-comment this line to resolve compilation errors
-                 //      due to different settings of the default GLSL version
+#version 120
 
 in  vec3 vPosition;
-in  vec3 vColor;
-out vec4 color;
+in  vec3 vNormal;
+in  vec4 vColor;
+varying out vec4 color;
+varying out vec3 Normal;
+varying out vec3 FragPos;
 
 uniform mat4 model_view;
+uniform mat4 imodel;
 uniform mat4 projection;
 
 void main()
 {
-vec4 vPosition4 = vec4(vPosition.x, vPosition.y, vPosition.z, 1.0);
-vec4 vColor4 = vec4(vColor.r, vColor.g, vColor.b, 1.0);
+  vec4 vPosition4 = vec4(vPosition.x, vPosition.y, vPosition.z, 1.0);
+  vec4 vColor4 = vec4(vColor.r, vColor.g, vColor.b, vColor.a);
+  
+  FragPos = -vec3(model_view * vPosition4);
+  Normal = mat3(transpose(imodel)) * vNormal;
+  gl_Position = projection * model_view * vPosition4;
 
-    // YJC: Original, incorrect below:
-    //      gl_Position = projection*model_view*vPosition/vPosition.w;
-
-    gl_Position = projection * model_view * vPosition4;
-
-    color = vColor4;
+  color = vColor4;
 }

@@ -15,10 +15,10 @@ typedef Angel::vec4  color4;
 typedef Angel::vec3  point3;
 typedef Angel::vec4  vec4;
 
-bool flag_ini = 0, SphereFlag = true;
+bool flag_ini = 0, SphereFlag = true, normFlag = 0;
 
 
-bool iluminado = true;
+bool ilum = false;
 
 static int window;
 static int menu_id;
@@ -32,6 +32,7 @@ static int value = 0;
 
 GLuint Angel::InitShader(const char* vShaderFile, const char* fShaderFile);
 
+GLuint programIni;
 GLuint program;
 GLuint sphere_buffer;
 GLuint floor_buffer;
@@ -39,18 +40,15 @@ GLuint x_buffer;
 GLuint y_buffer;
 GLuint z_buffer;
 
-GLfloat  fovy = 45.0;  // Field-of-view in Y direction angle (in degrees)
-GLfloat  aspect;       // Viewport aspect ratio
+GLfloat  fovy = 45.0;
+GLfloat  aspect;
 GLfloat  zNear = 0.5, zFar = 15.0;
 
 GLfloat angleX = 0.1;
 GLfloat angleZ = 0.1;
 GLfloat angle = 0.0;
 
-GLfloat angle1 = 0;
-GLfloat angle2 = 0;
-GLfloat angle3 = 0;
-
+mat4 rot = Rotate(0, 1, 1, 1);
 
 vec4 VRP = vec4(7.0, 3.0, -10.0, 1.0);
 vec4 VPN = vec4(-7.0, -3.0, 10.0, 0.0);
@@ -75,43 +73,51 @@ point3 C = point3(3.5, 1, -2.5);
 
 point3 v1, v2, v3;
 
-
-
 point3 posiAc = A;
-
 
 color4 floor_colors[6];
 point3 floor_points[6];
+point3 floor_normal[6];
 
 color4 x_colors[3];
 point3 x_points[3];
+point3 x_normal[3];
 
 color4 y_colors[3];
 point3 y_points[3];
+point3 y_normal[3];
 
 color4 z_colors[3];
 point3 z_points[3];
+point3 z_normal[3];
 
 void floor(){
   floor_colors[0] = floor_color; floor_points[0] = point3(5, 0, 8);
 	floor_colors[1] = floor_color; floor_points[1] = point3(5, 0, -4);
 	floor_colors[2] = floor_color; floor_points[2] = point3(-5, 0, -4);
+  floor_normal[0] = point3(0, 1, 0);
+  floor_normal[1] = point3(0, 1, 0);
+  floor_normal[2] = point3(0, 1, 0);
+
 
 	floor_colors[3] = floor_color; floor_points[3] = point3(5, 0, 8);
 	floor_colors[4] = floor_color; floor_points[4] = point3(-5, 0, -4);
 	floor_colors[5] = floor_color; floor_points[5] = point3(-5, 0, 8);
+  floor_normal[3] = point3(0, 1, 0);
+  floor_normal[4] = point3(0, 1, 0);
+  floor_normal[5] = point3(0, 1, 0);
 
-  x_colors[0] = x_color; x_points[0] = point3(0, 0, 0);
-  x_colors[1] = x_color; x_points[1] = point3(0, 0, 0);
-  x_colors[2] = x_color; x_points[2] = point3(10, 0, 0);
+  x_colors[0] = x_color; x_points[0] = point3(0, 0, 0); x_normal[0] = point3(1, 0, 0);
+  x_colors[1] = x_color; x_points[1] = point3(0, 0, 0); x_normal[1] = point3(1, 0, 0);
+  x_colors[2] = x_color; x_points[2] = point3(10, 0, 0);x_normal[2] = point3(1, 0, 0);
 
-  y_colors[0] = y_color; y_points[0] = point3(0, 0, 0);
-  y_colors[1] = y_color; y_points[1] = point3(0, 0, 0);
-  y_colors[2] = y_color; y_points[2] = point3(0, 10, 0);
+  y_colors[0] = y_color; y_points[0] = point3(0, 0, 0); y_normal[0] = point3(0, 1, 0);
+  y_colors[1] = y_color; y_points[1] = point3(0, 0, 0); y_normal[1] = point3(0, 1, 0);
+  y_colors[2] = y_color; y_points[2] = point3(0, 10, 0);y_normal[2] = point3(0, 1, 0);
 
-  z_colors[0] = z_color; z_points[0] = point3(0, 0, 0);
-  z_colors[1] = z_color; z_points[1] = point3(0, 0, 0);
-  z_colors[2] = z_color; z_points[2] = point3(0, 0, 10);
+  z_colors[0] = z_color; z_points[0] = point3(0, 0, 0); z_normal[0] = point3(0, 1, 0);
+  z_colors[1] = z_color; z_points[1] = point3(0, 0, 0); z_normal[1] = point3(0, 1, 0);
+  z_colors[2] = z_color; z_points[2] = point3(0, 0, 10);z_normal[2] = point3(0, 1, 0);
 }
 
 int numNodes, Index, rotFlag;
@@ -136,9 +142,9 @@ void readSphere(string s){
       //std::cout << x << "-" << y << "-" << z << '\n';
     }
     point3 pn = normTri(i*3, (i*3) + 1, (i*3) + 2);
-    sphere_normFlat.push_back(point3( x, y, z));
-    sphere_normFlat.push_back(point3( x, y, z));
-    sphere_normFlat.push_back(point3( x, y, z));
+    sphere_normFlat.push_back(pn);
+    sphere_normFlat.push_back(pn);
+    sphere_normFlat.push_back(pn);
   }
   numNodes = sphere_points.size();
   std::cout << numNodes << '\n';
@@ -146,12 +152,21 @@ void readSphere(string s){
 
 void init(){
   unsigned int sizeData = 0;
+
   glGenBuffers(1, &sphere_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, sphere_buffer);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(point3)*numNodes + sizeof(color4)*numNodes, NULL,
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(point3)*numNodes*3 + sizeof(color4)*numNodes
+                              , NULL, GL_STATIC_DRAW);
   for (int i = 0; i < numNodes; i++) {
     glBufferSubData(GL_ARRAY_BUFFER, sizeData, sizeof(point3), sphere_points[i]);
+    sizeData += sizeof(point3);
+  }
+  for (int i = 0; i < numNodes; i++) {
+    glBufferSubData(GL_ARRAY_BUFFER, sizeData, sizeof(point3), sphere_normFlat[i]);
+    sizeData += sizeof(point3);
+  }
+  for (int i = 0; i < numNodes; i++) {
+    glBufferSubData(GL_ARRAY_BUFFER, sizeData, sizeof(point3), sphere_normSmooth[i]);
     sizeData += sizeof(point3);
   }
   for (int i = 0; i < numNodes; i++) {
@@ -161,86 +176,118 @@ void init(){
   floor();
   glGenBuffers(1, &floor_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, floor_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(floor_points) + sizeof(floor_colors),
+	glBufferData(GL_ARRAY_BUFFER, sizeof(floor_points)*3 + sizeof(floor_colors),
 		NULL, GL_STATIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(floor_points), floor_points);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(floor_points), sizeof(floor_colors),
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(floor_points), sizeof(floor_normal), floor_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(floor_points)*2, sizeof(floor_normal), floor_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(floor_points)*3, sizeof(floor_colors),
 		floor_colors);
 
   glGenBuffers(1, &x_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, x_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(x_points) + sizeof(x_colors),
+	glBufferData(GL_ARRAY_BUFFER, sizeof(x_points)*3 + sizeof(x_colors),
 		NULL, GL_STATIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(x_points), x_points);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(x_points), sizeof(x_colors),
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(x_points), sizeof(x_points), x_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(x_points)*2, sizeof(x_points), x_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(x_points)*3, sizeof(x_colors),
 		x_colors);
 
   glGenBuffers(1, &y_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, y_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(y_points) + sizeof(y_colors),
+	glBufferData(GL_ARRAY_BUFFER, sizeof(y_points)*3 + sizeof(y_colors),
 		NULL, GL_STATIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(y_points), y_points);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(y_points), sizeof(y_colors),
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(y_points), sizeof(y_normal), y_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(y_points)*2, sizeof(y_normal), y_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(y_points)*3, sizeof(y_colors),
 		y_colors);
 
   glGenBuffers(1, &z_buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, z_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(z_points) + sizeof(z_colors),
+	glBufferData(GL_ARRAY_BUFFER, sizeof(z_points)*3 + sizeof(z_colors),
 		NULL, GL_STATIC_DRAW);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(z_points), z_points);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(z_points), sizeof(z_colors),
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(z_points), sizeof(z_normal), z_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(z_points)*2, sizeof(z_normal), z_normal);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(z_points)*3, sizeof(z_colors),
 		z_colors);
 
+  programIni = InitShader("vshader41.glsl", "fshader41.glsl");
   program = InitShader("vshader42.glsl", "fshader42.glsl");
   glEnable( GL_DEPTH_TEST );
   glClearColor( 0.529, 0.807, 0.92, 0.0 );
   glLineWidth(2.0);
 }
 
-void drawObj(GLuint buffer, int num_vertices)
+void drawObj(GLuint buffer, int num_vertices,bool flag)
 {
-    //--- Activate the vertex buffer object to be drawn ---//
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    GLuint vNormal, vPosition, vColor;
 
-    /*----- Set up vertex attribute arrays for each vertex attribute -----*/
-    GLuint vPosition = glGetAttribLocation(program, "vPosition");
-    glEnableVertexAttribArray(vPosition);
-    glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0,
-			  BUFFER_OFFSET(0) );
+    if (flag) {
+      vPosition = glGetAttribLocation(program, "vPosition");
+      vColor = glGetAttribLocation(program, "vColor");
+      vNormal = glGetAttribLocation(program, "vNormal");
+      glEnableVertexAttribArray(vPosition);
+      glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0,
+        BUFFER_OFFSET(0) );
+      glEnableVertexAttribArray(vNormal);
+      if (normFlag) {
+        glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0,
+          BUFFER_OFFSET(sizeof(point3) * num_vertices*2) );
+      }else{
+        glVertexAttribPointer(vNormal, 3, GL_FLOAT, GL_FALSE, 0,
+          BUFFER_OFFSET(sizeof(point3) * num_vertices) );
+      }
 
-    GLuint vColor = glGetAttribLocation(program, "vColor");
-    glEnableVertexAttribArray(vColor);
-    glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0,
-			  BUFFER_OFFSET(sizeof(point3) * num_vertices) );
-      // the offset is the (total) size of the previous vertex attribute array(s)
+      glEnableVertexAttribArray(vColor);
+      glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0,
+        BUFFER_OFFSET(sizeof(point3) * num_vertices*3) );
+        glDrawArrays(GL_TRIANGLES, 0, num_vertices);
+        glDisableVertexAttribArray(vPosition);
+        glDisableVertexAttribArray(vNormal);
+        glDisableVertexAttribArray(vColor);
+    }else{
+      vPosition = glGetAttribLocation(programIni, "vPosition");
+      vColor = glGetAttribLocation(programIni, "vColor");
+      glEnableVertexAttribArray(vPosition);
+      glVertexAttribPointer(vPosition, 3, GL_FLOAT, GL_FALSE, 0,
+        BUFFER_OFFSET(0) );
 
-    /* Draw a sequence of geometric objs (triangles) from the vertex buffer
-       (using the attributes specified in each enabled vertex attribute array) */
-    glDrawArrays(GL_TRIANGLES, 0, num_vertices);
+      glEnableVertexAttribArray(vColor);
+      glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0,
+        BUFFER_OFFSET(sizeof(point3) * num_vertices*3) );
+        glDrawArrays(GL_TRIANGLES, 0, num_vertices);
 
-    /*--- Disable each vertex attribute array being enabled ---*/
-    glDisableVertexAttribArray(vPosition);
-    glDisableVertexAttribArray(vColor);
+        glDisableVertexAttribArray(vPosition);
+        glDisableVertexAttribArray(vColor);
+    }
+
+
 }
 
 void valueMenu() {
   switch (value) {
   	case 1:
   	{
-
       GLfloat angleX = 0.1;
       GLfloat angleZ = 0.1;
       GLfloat angle = 0.0;
-
-      GLfloat angle1 = 0;
-      GLfloat angle2 = 0;
-      GLfloat angle3 = 0;
+      rot = Rotate(0, 1, 1, 1);
       posiAc = A;
       rotFlag = 3;
-  		//flag_comenzar=true;
   		value = 0;
-  		//glutSwapBuffers();
 
+  		break;
+  	}
+  	case 3:{
+      ilum = 0;
+  		break;
+  	}
+  	case 4:{
+      ilum = 1;
   		break;
   	}
   	case 5:{
@@ -251,8 +298,16 @@ void valueMenu() {
       SphereFlag = 0;
   		break;
   	}
-
+  	case 7:{
+      normFlag = 0;
+  		break;
+  	}
+  	case 8:{
+      normFlag = 1;
+  		break;
+  	}
   	default:{
+
     }
   }
 }
@@ -261,45 +316,74 @@ void display( void ){
 
   GLuint  model_view;
   GLuint  projection;
+  GLuint imodel;
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-  glUseProgram(program);
-  model_view = glGetUniformLocation(program, "model_view" );
-  projection = glGetUniformLocation(program, "projection" );
+  if (ilum) {
+    glUseProgram(program);
+    model_view = glGetUniformLocation(program, "model_view" );
+    projection = glGetUniformLocation(program, "projection" );
+    imodel = glGetUniformLocation(program, "imodel");
+  }else{
+    glUseProgram(programIni);
+    model_view = glGetUniformLocation(programIni, "model_view" );
+    projection = glGetUniformLocation(programIni, "projection" );
+    imodel = glGetUniformLocation(program, "imodel");
+  }
 
 
   mat4  p = Perspective(fovy, aspect, zNear, zFar);
   glUniformMatrix4fv(projection, 1, GL_TRUE, p);
 
-  vec4    at(0.0, 0.0, 0.0, 1.0);
-  vec4    up(0.0, 1.0, 0.0, 0.0);
 
-  mat4  mv = LookAt(eye, VPN, VUP);
+  mat4  v = LookAt(eye, VPN, VUP);
 
-  mv = mv * Translate(posiAc);//*Rotate(angle, angleX, 0, angleZ);
+  mat4 m = Translate(posiAc)*rot;
 
-  mv = mv * Rotate(angle1, v1.z, 0, -v1.x);
-  mv = mv * Rotate(angle2, v2.z, 0, -v2.x);
-  mv = mv * Rotate(angle3, -v3.z, 0, v3.x);
+  mat4  im = mat4WithUpperLeftMat3(inverse(upperLeftMat3(m)));
 
+  glUniformMatrix4fv(model_view, 1, GL_TRUE, v*m);
+  if(ilum){
+    glUniformMatrix4fv(imodel, 1, GL_TRUE, im);
+    glUniform3f(glGetUniformLocation(program, "viewPos"), eye[0], eye[1], eye[2]);
+    glUniform3f(glGetUniformLocation(program, "material.ambient"), 0.2f, 0.2f, 0.2f);
+    glUniform3f(glGetUniformLocation(program, "material.diffuse"), 1.0f, 0.84f, 0.0f);
+    glUniform3f(glGetUniformLocation(program, "material.specular"), 1.0f, 0.84f, 0.0f);
+    glUniform1f(glGetUniformLocation(program, "shininess"), 125.0f);
 
-  glUniformMatrix4fv(model_view, 1, GL_TRUE, mv);
+    glUniform3f(glGetUniformLocation(program, "dirLight.direction"), -0.638813, -0.238667, 0.738211);
+    glUniform3f(glGetUniformLocation(program, "dirLight.ambient"), 0.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(program, "dirLight.diffuse"), 0.8f, 0.8f, 0.8f);
+    glUniform3f(glGetUniformLocation(program, "dirLight.specular"), 0.2f, 0.2f, 0.2f);
+    glUniform3f(glGetUniformLocation(program, "globalAmbientLight"), 1.0f, 1.0f, 1.0f);
+  }
+
   if (SphereFlag == 1)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   else
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  drawObj(sphere_buffer, numNodes);
 
-  mv = LookAt(eye, VPN, VUP) * Translate(0.0, 0.05, 0.0) ;
+
+  drawObj(sphere_buffer, numNodes, ilum);
+
+  m = Translate(0.0, 0.05, 0.0);
+  im = mat4WithUpperLeftMat3(inverse(upperLeftMat3(m)));
+  mat4 mv = LookAt(eye, VPN, VUP) * Translate(0.0, 0.05, 0.0);
   glUniformMatrix4fv(model_view, 1, GL_TRUE, mv);
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	drawObj(x_buffer, 3);
-	drawObj(y_buffer, 3);
-	drawObj(z_buffer, 3);
+  if(ilum){
+    glUniformMatrix4fv(imodel, 1, GL_TRUE, im);
+    glUniform3f(glGetUniformLocation(program, "material.ambient"), 0.2f, 0.2f, 0.2f);
+    glUniform3f(glGetUniformLocation(program, "material.specular"), 0.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(program, "material.diffuse"), 1.0f, 0.84f, 0.0f);
+  }
+	drawObj(x_buffer, 3, ilum);
+	drawObj(y_buffer, 3, ilum);
+	drawObj(z_buffer, 3, ilum);
 
-  mv = LookAt(VRP, VPN, VUP);
+  mv = LookAt(eye, VPN, VUP);
   glUniformMatrix4fv(model_view, 1, GL_TRUE, mv);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  drawObj(floor_buffer, 6) ;
+  drawObj(floor_buffer, 6, ilum) ;
 
   glutSwapBuffers();
   valueMenu() ;
@@ -318,17 +402,16 @@ void idle(void)
     switch (rotFlag) {
       case 1: {
         posiAc += v1/V;
-        angle1 += angle;
+        rot = Rotate(angle, v1.z, 0, -v1.x)*rot;
         if (posiAc.z <= -4 && posiAc.x<=-1 ) {
           rotFlag = 2;
           posiAc = B;
         }
-
         break;
       }
       case 2: {
         posiAc += v2/V;
-        angle2 += angle;
+        rot = Rotate(angle, v2.z, 0, -v2.x)*rot;
         if (posiAc.z >= -2.5 && posiAc.x >= 3.5){
           rotFlag = 3;
           posiAc = C;
@@ -337,7 +420,7 @@ void idle(void)
       }
       case 3: {
         posiAc += v3/V;
-        angle3 += angle;
+        rot = Rotate(angle, v3.z, 0, -v3.x)*rot;
         if (posiAc.z >= 5 && posiAc.x <= 3) {
           rotFlag = 1;
           posiAc = A;
@@ -352,7 +435,7 @@ void idle(void)
 void keyboard(unsigned char key, int x, int y)
 {
 	switch (key) {
-	case 033: // Escape Key
+	case 033:
 	case 'q': case 'Q':
 		exit(EXIT_SUCCESS);
 		break;
@@ -363,15 +446,15 @@ void keyboard(unsigned char key, int x, int y)
 	case 'y': eye[1] -= 1.0; break;
 	case 'Z': eye[2] += 1.0; break;
 	case 'z': eye[2] -= 1.0; break;
-  case 'b': case 'B': // Toggle between animation and non-animation
+  case 'b': case 'B':
 		flag_ini = 1;
 		break;
 
-  case 'c': case 'C': // Toggle between filled and wireframe cube
+  case 'c': case 'C':
 		SphereFlag = 1 - SphereFlag;
 		break;
 
-	case ' ':  // reset to initial viewer/eye position
+	case ' ':
 		eye = VRP;
 		break;
 	}
@@ -406,15 +489,12 @@ void Menu(void) {
 	glutAddMenuEntry("NO", 5);
 	glutAddMenuEntry("YES", 6);
 
-	submenu3_id = glutCreateMenu(menu);
-
 	menu_id = glutCreateMenu(menu);
 	glutAddMenuEntry("Default View Point", 1);
 	glutAddSubMenu("Enable Lighting", submenu_id);
 	glutAddSubMenu("Shading", submenu0_id);
 	glutAddSubMenu("Ligth Source", submenu1_id);
 	glutAddSubMenu("Wire Frame", submenu2_id);
-	glutAddSubMenu("Services", submenu3_id);
 	glutAddMenuEntry("Quit", 0);
 
 	glutAttachMenu(GLUT_LEFT_BUTTON);
@@ -449,7 +529,6 @@ int main(int argc, char **argv) {
   { printf("Error: glewInit failed: %s\n", (char*) glewGetErrorString(err));
     exit(1);
   }
-
   Menu();
 
   glutDisplayFunc(display);
