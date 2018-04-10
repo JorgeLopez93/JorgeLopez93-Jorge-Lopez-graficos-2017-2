@@ -1,5 +1,5 @@
 #version 120
-attribute  vec4 color;
+varying  vec4 color;
 
 
 
@@ -16,8 +16,8 @@ struct Material {
     vec3 specular;
 };
 
-attribute vec3 FragPos;
-attribute vec3 Normal;
+varying vec3 FragPos;
+varying vec3 Normal;
 uniform vec3 globalAmbientLight;
 uniform float shininess;
 uniform vec3 viewPos;
