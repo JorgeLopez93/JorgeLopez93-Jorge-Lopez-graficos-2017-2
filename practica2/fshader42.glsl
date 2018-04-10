@@ -1,5 +1,5 @@
 #version 120
-in  vec4 color;
+attribute  vec4 color;
 
 
 
@@ -16,8 +16,8 @@ struct Material {
     vec3 specular;
 };
 
-in vec3 FragPos;
-in vec3 Normal;
+attribute vec3 FragPos;
+attribute vec3 Normal;
 uniform vec3 globalAmbientLight;
 uniform float shininess;
 uniform vec3 viewPos;
@@ -40,7 +40,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     vec3 specular = light.specular * spec * material.specular;
     return (ambient + diffuse + specular);
 }
-varying out vec4 fColor;
+uniform vec4 fColor;
 
 void main()
 {
@@ -52,5 +52,5 @@ void main()
     // phase 3: spot light
     //result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
     result = result + globalAmbientLight * material.ambient;
-    fColor = vec4(result, 1.0);
+    gl_FragColor = vec4(result, 1.0);
 }
