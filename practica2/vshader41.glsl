@@ -1,8 +1,8 @@
 
 #version 120
 
-in  vec3 vPosition;
-in  vec4 vColor;
+attribute  vec3 vPosition;
+attribute  vec4 vColor;
 varying vec4 color;
 
 uniform mat4 model_view;
