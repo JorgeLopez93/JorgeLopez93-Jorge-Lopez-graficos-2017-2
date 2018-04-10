@@ -3,7 +3,7 @@
 
 in  vec3 vPosition;
 in  vec4 vColor;
-varying out vec4 color;
+varying vec4 color;
 
 uniform mat4 model_view;
 uniform mat4 projection;
